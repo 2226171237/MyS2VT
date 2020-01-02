@@ -47,19 +47,17 @@ class Vocabs:
         self.bias_init_vector=None
         self._create_vcab(captions)
 
-
     def _create_vcab(self,docs):
         num_captions=0
         for caption in docs:
             num_captions+=1
-            for w in caption.split(' '):
+            for w in caption.lower().split(' '):
                 self.count_per_word[w] = self.count_per_word.get(w, 0) + 1
-        n=len(self.count_per_word)
-        for w in self.count_per_word:
-            if self.count_per_word[w] < self.min_count_threshold:
-                del self.count_per_word[w]
 
-        print('select %d words from %d words' % (len(self.count_per_word),n))
+        n=len(self.count_per_word)
+        self.all_words=[w for w in self.count_per_word if self.count_per_word[w]>self.min_count_threshold]
+
+        print('filter %d words from %d words' % (len(self.all_words),n))
 
         self.word2idx['<pad>']=0
         self.word2idx['<bos>']=1
@@ -71,15 +69,13 @@ class Vocabs:
         self.count_per_word['<eos>']=num_captions
         self.count_per_word['<unk>']=num_captions
 
-        self.all_words=list(self.count_per_word.keys())
-
         for i,w in enumerate(self.all_words):
             self.word2idx[w]=i+4
 
         self.idx2word={self.word2idx[w]:w for w in self.word2idx}
         self.n_words=len(self.idx2word)
 
-        self.bias_init_vector=np.array([self.count_per_word[w] for w in self.word2idx])
+        self.bias_init_vector=np.array([self.count_per_word[w] for w in self.word2idx],dtype=np.float32)
         self.bias_init_vector/=np.sum(self.bias_init_vector)
         self.bias_init_vector=np.log(self.bias_init_vector)
         self.bias_init_vector-=np.max(self.bias_init_vector)
@@ -102,25 +98,46 @@ class DataLoader:
         return_features=[]
         return_captions=[]
         indices=np.random.randint(0,self.num_captions,size=batch_size)
-        captions=[0 for _ in range(self.n_words_per_caption+2)]
-        captions[0], captions[-1] = 1, 2
         for idx in indices:
             this_path=os.path.basename(self.video_paths[idx]).split('.')[0]
             feature_path=os.path.join(self.data_dir,this_path+'.npy')
-            this_features=np.load(feature_path)
+            if os.path.exists(feature_path):
+                this_features=np.load(feature_path,allow_pickle=True)
+            else:
+                raise ValueError('feature path not existed in class %s' % self.__class__.__name__)
+            this_features=np.vstack(this_features)
             this_feature_nums,dims_feature=this_features.shape
             if this_feature_nums<self.n_flames_per_video:
-                this_features=np.hstack([this_features,
+                this_features=np.vstack([this_features,
                                          np.zeros(shape=(self.n_flames_per_video-this_feature_nums,dims_feature))])
+            if this_feature_nums>self.n_flames_per_video:
+                selected_idxs=np.linspace(0,this_feature_nums,num=self.n_flames_per_video)
+                this_features=this_features[selected_idxs,:]
             return_features.append(this_features)
-            captions[1:-1]=[self.vacabs.word2idx[w] for w in self.captions[idx].split(' ')[:self.n_words_per_caption]]
+            captions=[0 for _ in range(self.n_words_per_caption+2)]
+            i=0
+            captions[0]=self.vacabs.word2idx['<eos>']
+            for w in self.captions[idx].lower().split(' '):
+                if w not in self.vacabs.word2idx:
+                    captions[i+1]=self.vacabs.word2idx['<unk>']
+                else:
+                    captions[i+1]=self.vacabs.word2idx[w]
+                i+=1
+                if i>self.n_words_per_caption:
+                    break
+            captions[i]=self.vacabs.word2idx['<eos>']
+
             return_captions.append(captions)
+
         return np.array(return_features,dtype=np.float32),np.array(return_captions,dtype=np.int32)
 
 if __name__ == '__main__':
-    data=MSVD_Caption(CSV_PATH)
-    print(data.head())
-    print(data['Description'].values)
+    SAVEPATH = 'F:\\DataSets\\VideoCaption\\MSVD\\Features'
+    dataset=MSVD_Caption(CSV_PATH)
+    dataloader=DataLoader(dataset,data_dir=SAVEPATH)
+    x,y=dataloader.get_batch(batch_size=2)
+    print(x.shape)
+    print(y)
 
 
 
