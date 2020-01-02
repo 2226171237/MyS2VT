@@ -14,7 +14,7 @@ class CaptionGenerator(tf.keras.Model):
         self.n_video_lstm=n_video_lstm
         self.n_caption_lstm=n_caption_lstm
         self.batch_size=batch_size
-        self.wordEmbed = tf.Variable(tf.random_uniform_initializer(-0.1, 0.1)(shape=(n_words, dim_feature)),name='wordEmbed')
+        self.wordEmbed = tf.Variable(tf.random_uniform_initializer(-0.1, 0.1)(shape=(n_words, dim_hidden)),name='wordEmbed')
 
         self.dense_feature=keras.layers.Dense(units=dim_feature,name='dense_feature')
         self.lstm1=keras.layers.LSTMCell(units=dim_hidden,name='lstm_video')

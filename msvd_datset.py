@@ -56,6 +56,7 @@ class Vocabs:
 
         n=len(self.count_per_word)
         self.all_words=[w for w in self.count_per_word if self.count_per_word[w]>self.min_count_threshold]
+        self.all_words=sorted(self.all_words)
 
         print('filter %d words from %d words' % (len(self.all_words),n))
 
@@ -83,7 +84,8 @@ class Vocabs:
 
 class DataLoader:
     #cache={}
-    def __init__(self,dataset,data_dir,n_flames_per_video=80,n_words_per_caption=20):
+    def __init__(self,csv_dir,data_dir,n_flames_per_video=80,n_words_per_caption=20):
+        dataset=MSVD_Caption(csv_dir)
         self.video_paths=dataset['Video_path'].values
         self.captions=dataset['Description'].values
         self.captions=list(replace_map(self.captions))
@@ -133,8 +135,7 @@ class DataLoader:
 
 if __name__ == '__main__':
     SAVEPATH = 'F:\\DataSets\\VideoCaption\\MSVD\\Features'
-    dataset=MSVD_Caption(CSV_PATH)
-    dataloader=DataLoader(dataset,data_dir=SAVEPATH)
+    dataloader=DataLoader(CSV_PATH,data_dir=SAVEPATH)
     x,y=dataloader.get_batch(batch_size=2)
     print(x.shape)
     print(y)
