@@ -38,7 +38,7 @@ model=CaptionGenerator(n_words=dataloader.vacabs.n_words,
 
 optimizer=tf.keras.optimizers.Adam(lr=args.lr)
 loss_history=[]
-loss_smooth,beta=[],0.8
+loss_smooth,beta,last_loss=[],0.8,0.
 start_time=time.time()
 for batch_idx in range(batch_nums):
     video_features,captions=dataloader.get_batch(batch_size=args.batch_size)
@@ -49,10 +49,11 @@ for batch_idx in range(batch_nums):
     optimizer.apply_gradients(grads_and_vars=zip(grads,model.variables))
 
     loss_history.append(loss.numpy())
-    if loss_smooth is []:
-        loss_smooth.append(0*beta+(1-beta)*loss.numpy())
+    if batch_idx==0:
+        loss_smooth.append(loss.numpy())
     else:
-        loss_smooth.append(loss_smooth[-1] * beta + (1 - beta) * loss.numpy())
+        loss_smooth.append(last_loss * beta + (1 - beta) * loss.numpy())
+    last_loss=loss_smooth[-1]
 
     if (batch_idx+1)%10==0:
         time_used=time.time()-start_time
@@ -63,7 +64,7 @@ for batch_idx in range(batch_nums):
         save_path=WEIGHT_SAVE_PATH+'/model_%d.h5' % (batch_idx+1)
         model.save_weights(save_path)
         print('save model weights to %s' % save_path)
-        plt.plot(loss_history,'g')
+        plt.plot(loss_history,'g',alpha=0.7,linewidth=0.5)
         plt.plot(loss_smooth,'r')
         plt.xlabel('batch')
         plt.ylabel('loss')
