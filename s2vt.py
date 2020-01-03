@@ -16,7 +16,7 @@ WEIGHT_SAVE_PATH='./save_model'
 parse=argparse.ArgumentParser()
 parse.add_argument('--mode',default='train',help='train or predict')
 parse.add_argument('--cnn',default='mobilenetv2',help='vgg16, resnet50 or mobilenetv2')
-parse.add_argument('--num_epochs',type=int,default=1)
+parse.add_argument('--num_epochs',type=int,default=20)
 parse.add_argument('--lr',type=float,default=1e-4)
 parse.add_argument('--batch_size',type=int,default=32)
 parse.add_argument('--data_dir',default=SAVEPATH)
@@ -40,6 +40,9 @@ optimizer=tf.keras.optimizers.Adam(lr=args.lr)
 loss_history=[]
 loss_smooth,beta,last_loss=[],0.8,0.
 start_time=time.time()
+
+plt.figure(figsize=(16,12))
+
 for batch_idx in range(batch_nums):
     video_features,captions=dataloader.get_batch(batch_size=args.batch_size)
     captions_mask=captions>0
@@ -59,11 +62,17 @@ for batch_idx in range(batch_nums):
         time_used=time.time()-start_time
         print('%d/%d: loss %f, average time cost %fs' % (batch_idx+1,batch_nums,loss.numpy(),time_used/10))
         start_time=time.time()
-    if (batch_idx+1)%50==0:
+    # 保存前20个权重文件
+    if (batch_idx+1)%200==0:
         print('%d/%d: loss %f' % (batch_idx + 1, batch_nums, loss.numpy()))
         save_path=WEIGHT_SAVE_PATH+'/model_%d.h5' % (batch_idx+1)
         model.save_weights(save_path)
         print('save model weights to %s' % save_path)
+        weights_file=os.listdir(WEIGHT_SAVE_PATH)
+        if (len(weights_file)>20):
+            del_file=sorted(weights_file)
+            os.remove(os.path.join(WEIGHT_SAVE_PATH,del_file))
+
         plt.plot(loss_history,'g',alpha=0.7,linewidth=0.5)
         plt.plot(loss_smooth,'r')
         plt.xlabel('batch')
@@ -71,5 +80,6 @@ for batch_idx in range(batch_nums):
         plt.legend(['loss','smooth loss'])
         plt.savefig('loss.png')
         plt.clf()
+
 print('train over')
 
