@@ -16,7 +16,7 @@ parse=argparse.ArgumentParser()
 parse.add_argument('--mode',default='train',help='train or predict')
 parse.add_argument('--cnn',default='mobilenetv2',help='vgg16, resnet50 or mobilenetv2')
 parse.add_argument('--num_epochs',type=int,default=5)
-parse.add_argument('--lr',type=float,default=0.1)
+parse.add_argument('--lr',type=float,default=0.001)
 parse.add_argument('--batch_size',type=int,default=32)
 parse.add_argument('--data_dir',default=SAVEPATH)
 parse.add_argument('--csv_path',default=CSV_PATH)
@@ -32,7 +32,8 @@ model=CaptionGenerator(n_words=dataloader.vacabs.n_words,
                        dim_feature=1280,
                        dim_hidden=500,
                        n_video_lstm=80,
-                       n_caption_lstm=20
+                       n_caption_lstm=20,
+                       bias_init_vector=dataloader.vacabs.bias_init_vector
                        )
 
 
@@ -67,7 +68,7 @@ for batch_idx in range(batch_nums):
     optimizer.apply_gradients(grads_and_vars=zip(grads,model.variables))
 
     lr_history.append(tf.keras.backend.get_value(optimizer.lr))
-    tf.keras.backend.set_value(optimizer.lr,lr_schedule_polynomial_decay_cycle(batch_idx,cycle=True))
+    #tf.keras.backend.set_value(optimizer.lr,lr_schedule_polynomial_decay_cycle(batch_idx,power=2,cycle=True))
 
     loss_history.append(loss.numpy())
     if batch_idx==0:

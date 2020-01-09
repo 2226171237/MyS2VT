@@ -21,8 +21,10 @@ class CaptionGenerator(tf.keras.Model):
         self.lstm2=keras.layers.LSTMCell(units=dim_hidden,name='lstm_caption')
 
         self.dense_output=keras.layers.Dense(units=n_words,
-                                             bias_initializer=keras.initializers.Constant(bias_init_vector if bias_init_vector else 0.),
                                              name='dense_output')
+        if bias_init_vector:
+            self.dense_output.build(input_shape=(self.batch_size,dim_hidden))
+            self.dense_output.bias.assign_add(bias_init_vector)
 
     def call(self,X,Y=None,Y_mask=None):
         if Y is not None:
@@ -46,7 +48,7 @@ class CaptionGenerator(tf.keras.Model):
         # decoding
         for i in range(self.n_caption_lstm + 1):
             with tf.device('cpu:0'):
-                current_embed = tf.nn.embedding_lookup(self.wordEmbed, Y[:, i])
+                current_embed = tf.nn.embedding_lookup(self.wordEmbed, Y[:, i])  # tf.gather
             output1, self.state1 = self.lstm1(self.padding, self.state1)
             output2, self.state2 = self.lstm2(tf.concat([output1, current_embed], 1), self.state2)
 

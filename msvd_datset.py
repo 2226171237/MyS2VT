@@ -109,16 +109,16 @@ class DataLoader:
                 raise ValueError('feature path not existed in class %s' % self.__class__.__name__)
             this_features=np.vstack(this_features)
             this_feature_nums,dims_feature=this_features.shape
-            if this_feature_nums<self.n_flames_per_video:
+            if this_feature_nums<self.n_flames_per_video:  # 小于需要的帧数则填充0
                 this_features=np.vstack([this_features,
                                          np.zeros(shape=(self.n_flames_per_video-this_feature_nums,dims_feature))])
-            if this_feature_nums>self.n_flames_per_video:
+            if this_feature_nums>self.n_flames_per_video: # 大于指定帧数则使用均匀采样
                 selected_idxs=np.linspace(0,this_feature_nums,num=self.n_flames_per_video)
                 this_features=this_features[selected_idxs,:]
             return_features.append(this_features)
             captions=[0 for _ in range(self.n_words_per_caption+2)]
             i=0
-            captions[0]=self.vacabs.word2idx['<eos>']
+            captions[0]=self.vacabs.word2idx['<bos>']         # <bos> word1 word2 word3 .... word20 <eos> 
             for w in self.captions[idx].lower().split(' '):
                 if w not in self.vacabs.word2idx:
                     captions[i+1]=self.vacabs.word2idx['<unk>']

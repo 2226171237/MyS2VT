@@ -43,8 +43,8 @@ def extractRGBfeature(video_path=VIDEOPATH,save_path=SAVEPATH,net=None,batch_siz
         if video.endswith('.avi'):
             v_path=os.path.join(video_path,video)
             cap=cv2.VideoCapture(v_path)
-            flame_count=cap.get(cv2.CAP_PROP_FRAME_COUNT)
-            if flame_count>num_flames:
+            flame_count=cap.get(cv2.CAP_PROP_FRAME_COUNT) # 视频总帧数
+            if flame_count>num_flames: # 高于要求的帧数均匀采样
                 select_flames=np.linspace(0,flame_count,num=num_flames,dtype=np.int32)
             else:
                 select_flames=np.arange(0,flame_count,dtype=np.int32)
