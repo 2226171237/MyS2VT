@@ -22,7 +22,7 @@ class CaptionGenerator(tf.keras.Model):
 
         self.dense_output=keras.layers.Dense(units=n_words,
                                              name='dense_output')
-        if bias_init_vector:
+        if bias_init_vector is not None:
             self.dense_output.build(input_shape=(self.batch_size,dim_hidden))
             self.dense_output.bias.assign_add(bias_init_vector)
 
@@ -94,6 +94,8 @@ class CaptionGenerator(tf.keras.Model):
     
 
 if __name__ == '__main__':
+
+
     X=np.random.rand(3,80,512)
     X_mask=np.ones_like(X)
     Y=np.random.randint(0,100,size=(3,22))

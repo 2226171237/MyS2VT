@@ -8,16 +8,16 @@ import os
 import time
 import matplotlib.pyplot as plt
 
-SAVEPATH = 'F:\\DataSets\\VideoCaption\\MSVD\\Features'
+SAVEPATH = '../features/Features'
 CSV_PATH='./MSR_Video_Description_Corpus.csv'
 WEIGHT_SAVE_PATH='./save_model'
 
 parse=argparse.ArgumentParser()
 parse.add_argument('--mode',default='train',help='train or predict')
 parse.add_argument('--cnn',default='mobilenetv2',help='vgg16, resnet50 or mobilenetv2')
-parse.add_argument('--num_epochs',type=int,default=5)
-parse.add_argument('--lr',type=float,default=0.001)
-parse.add_argument('--batch_size',type=int,default=32)
+parse.add_argument('--num_epochs',type=int,default=50)
+parse.add_argument('--lr',type=float,default=0.0003)
+parse.add_argument('--batch_size',type=int,default=64)
 parse.add_argument('--data_dir',default=SAVEPATH)
 parse.add_argument('--csv_path',default=CSV_PATH)
 
@@ -27,6 +27,7 @@ dataloader=DataLoader(args.csv_path,data_dir=args.data_dir)
 
 batch_nums=int(dataloader.num_captions//args.batch_size*args.num_epochs)
 
+
 model=CaptionGenerator(n_words=dataloader.vacabs.n_words,
                        batch_size=args.batch_size,
                        dim_feature=1280,
@@ -35,8 +36,6 @@ model=CaptionGenerator(n_words=dataloader.vacabs.n_words,
                        n_caption_lstm=20,
                        bias_init_vector=dataloader.vacabs.bias_init_vector
                        )
-
-
 
 def lr_schedule_exponential_decay(step,init_lr=args.lr,decay_rate=0.96,decay_steps=200):
     '''学习率指数衰减'''
@@ -50,14 +49,13 @@ def lr_schedule_polynomial_decay_cycle(step,init_lr=args.lr,lr_end=1e-6,decay_st
         decay_steps*=fc
     return (init_lr-lr_end)*(1-step/decay_steps)**power+lr_end
 
-optimizer=tf.keras.optimizers.Adam(learning_rate=args.lr)
 
+# train
+optimizer=tf.keras.optimizers.Adam(learning_rate=args.lr)
 lr_history=[]
 loss_history=[]
 loss_smooth,beta,last_loss=[],0.8,0.
-
 start_time=time.time()
-
 fig=plt.figure(figsize=(16,12))
 for batch_idx in range(batch_nums):
     video_features,captions=dataloader.get_batch(batch_size=args.batch_size)
@@ -89,8 +87,9 @@ for batch_idx in range(batch_nums):
         print('save model weights to %s' % save_path)
         weights_file=os.listdir(WEIGHT_SAVE_PATH)
         if (len(weights_file)>20):
-            del_file=sorted(weights_file)[0]
-            os.remove(os.path.join(WEIGHT_SAVE_PATH,del_file))
+            del_file=sorted([int(f.split('.')[0][6:])  for f in weights_file])[0]
+            del_file=WEIGHT_SAVE_PATH+'/model_'+str(del_file)+'.h5'
+            os.remove(del_file)
 
         ax = fig.add_subplot(111)
         ax2 = ax.twinx()
@@ -104,5 +103,11 @@ for batch_idx in range(batch_nums):
         plt.savefig('loss.png')
         fig.clf()
 
+save_path=WEIGHT_SAVE_PATH+'/model_final.h5'
+model.save_weights(save_path)
+print('save model weights to %s' % save_path)
 print('train over')
+
+# test
+
 

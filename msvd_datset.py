@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 CSV_PATH='./MSR_Video_Description_Corpus.csv'
-VIDEO_PATH='F:\\DataSets\\VideoCaption\\MSVD\\YouTubeClips'
+VIDEO_PATH='../features/YouTubeClips'
 
 
 def replace_map(str_array):
@@ -134,7 +134,7 @@ class DataLoader:
         return np.array(return_features,dtype=np.float32),np.array(return_captions,dtype=np.int32)
 
 if __name__ == '__main__':
-    SAVEPATH = 'F:\\DataSets\\VideoCaption\\MSVD\\Features'
+    SAVEPATH = '../features/Features'
     dataloader=DataLoader(CSV_PATH,data_dir=SAVEPATH)
     x,y=dataloader.get_batch(batch_size=2)
     print(x.shape)
