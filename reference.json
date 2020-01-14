@@ -1,0 +1,41 @@
+
+?reference
+{
+    "info": {
+      "description": "test",
+      "url": "https://github.com/2226171237",
+      "version": "1.0",
+      "year": 2019,
+      "contributor": "liyajie",
+      "date_created": "2020-01-13"
+    },
+    "images": [
+      {"license": 1, "filename": "08pVpBq706k_175_212", "id": 0},
+      {"license": 1, "file_name": "idRc_KkInds_0_6", "id": 1}
+    ],
+    "license": [
+      {
+        "url": "http://creativecommons.org/licenses/by-nc-sa/2.0/",
+        "id": 1
+      }
+    ],
+    "annotations": [
+      {"image_id": 0, "id": 0, "caption": "a cat get his head stuck in a bag"},
+      {"image_id": 0, "id": 1, "caption": "A cat gets his head stuck in a paper bag."},
+      {"image_id": 0, "id": 2, "caption": "A cat gets its head stuck in a small paper bag."},
+
+      {"image_id": 1, "id": 48, "caption": "Someone is holding and petting a baby tiger."},
+      {"image_id": 1, "id": 49, "caption": "A person is holding a baby tiger."},
+      {"image_id": 1, "id": 50, "caption": "A man is holding a baby tiger."},
+      {"image_id": 1, "id": 51, "caption": "Someone is petting a tiger cub."}
+    ]
+},
+
+?generator
+[
+  {"image_id": 1370, "caption": "is taking a plane"},
+  {"image_id": 351, "caption": "a person is jumping"},
+  {"image_id": 880, "caption": "a cat is playing"},
+  {"image_id": 2071, "caption": "a man is jumping on a small container"}
+]
+

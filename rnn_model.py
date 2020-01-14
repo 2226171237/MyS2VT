@@ -4,6 +4,20 @@ import tensorflow as tf
 import tensorflow.keras as keras
 import numpy as np
 
+class WordEmbeding(tf.keras.layers.Layer):
+    def __init__(self,n_words,dim_hidden):
+        super(WordEmbeding, self).__init__()
+
+        self.wordEmbed = self.add_variable(name='wordEmbed', shape=(n_words, dim_hidden), trainable=True)
+
+    def build(self, input_shape):
+        self.wordEmbed.assign(tf.random.uniform(minval=-0.1,maxval=0.1,seed=10,shape=self.wordEmbed.shape,dtype=tf.float32))
+
+    def call(self, inputs, **kwargs):
+        out=tf.nn.embedding_lookup(self.wordEmbed, inputs)
+        return out
+
+
 class CaptionGenerator(tf.keras.Model):
     def __init__(self,n_words,batch_size,dim_feature=512,dim_hidden=512,n_video_lstm=80,
                  n_caption_lstm=20,bias_init_vector=None):
@@ -14,16 +28,21 @@ class CaptionGenerator(tf.keras.Model):
         self.n_video_lstm=n_video_lstm
         self.n_caption_lstm=n_caption_lstm
         self.batch_size=batch_size
-        self.wordEmbed = tf.Variable(tf.random_uniform_initializer(-0.1, 0.1)(shape=(n_words, dim_hidden)),name='wordEmbed')
+        self.wordEmbed = WordEmbeding(n_words,dim_hidden)
+        self.wordEmbed.build(input_shape=(None,))
 
         self.dense_feature=keras.layers.Dense(units=dim_hidden,name='dense_feature')
+        self.dense_feature.build(input_shape=(None,dim_feature))
+
         self.lstm1=keras.layers.LSTMCell(units=dim_hidden,name='lstm_video')
+        self.lstm1.build(input_shape=(batch_size,dim_hidden))
         self.lstm2=keras.layers.LSTMCell(units=dim_hidden,name='lstm_caption')
+        self.lstm2.build(input_shape=(batch_size, dim_hidden*2))
 
         self.dense_output=keras.layers.Dense(units=n_words,
                                              name='dense_output')
+        self.dense_output.build(input_shape=(None,dim_hidden))
         if bias_init_vector is not None:
-            self.dense_output.build(input_shape=(self.batch_size,dim_hidden))
             self.dense_output.bias.assign_add(bias_init_vector)
 
     def call(self,X,Y=None,Y_mask=None):
@@ -48,7 +67,7 @@ class CaptionGenerator(tf.keras.Model):
         # decoding
         for i in range(self.n_caption_lstm + 1):
             with tf.device('cpu:0'):
-                current_embed = tf.nn.embedding_lookup(self.wordEmbed, Y[:, i])  # tf.gather
+                current_embed = self.wordEmbed(Y[:, i])  # tf.gather
             output1, self.state1 = self.lstm1(self.padding, self.state1)
             output2, self.state2 = self.lstm2(tf.concat([output1, current_embed], 1), self.state2)
 
@@ -63,12 +82,13 @@ class CaptionGenerator(tf.keras.Model):
         return losses
 
     def predict(self,X):
-        self.state1 = self.lstm1.get_initial_state(batch_size=self.batch_size, dtype=tf.float32)
-        self.state2 = self.lstm2.get_initial_state(batch_size=self.batch_size, dtype=tf.float32)
-        self.padding = tf.zeros([self.batch_size, self.dim_hidden])
+        batch_size=X.shape[0]
+        self.state1 = self.lstm1.get_initial_state(batch_size=batch_size, dtype=tf.float32)
+        self.state2 = self.lstm2.get_initial_state(batch_size=batch_size, dtype=tf.float32)
+        self.padding = tf.zeros([X.shape[0], self.dim_hidden])
         X = tf.reshape(X, shape=(-1, self.dim_feature))  # (batch_size*T,dim_feature)
         X = self.dense_feature(X)  # (batch_size*T,dim_hidden)
-        X = tf.reshape(X, shape=(self.batch_size, -1, self.dim_hidden))
+        X = tf.reshape(X, shape=(batch_size, -1, self.dim_hidden))
         # encoding video
         for i in range(self.n_video_lstm):
             output1, self.state1 = self.lstm1(X[:, i, :], self.state1)
@@ -79,7 +99,7 @@ class CaptionGenerator(tf.keras.Model):
         for i in range(self.n_caption_lstm + 1):
             if i==0:
                 with tf.device('cpu:0'):
-                    current_embed = tf.nn.embedding_lookup(self.wordEmbed, tf.ones([self.batch_size],dtype=tf.int64))
+                    current_embed = self.wordEmbed(tf.ones([batch_size],dtype=tf.int64))
             output1, self.state1 = self.lstm1(self.padding, self.state1)
             output2, self.state2 = self.lstm2(tf.concat([output1, current_embed], 1), self.state2)
 
@@ -87,10 +107,10 @@ class CaptionGenerator(tf.keras.Model):
             logit_words = self.dense_output(output2)
             max_prob_index=tf.argmax(logit_words,axis=-1)
             with tf.device('cpu:0'):
-                current_embed=tf.nn.embedding_lookup(self.wordEmbed,max_prob_index)
+                current_embed=self.wordEmbed(max_prob_index)
             generated_words.append(max_prob_index.numpy())
 
-        return np.array(generated_words)
+        return np.array(generated_words).T
     
 
 if __name__ == '__main__':
@@ -111,5 +131,7 @@ if __name__ == '__main__':
         if (i+1)%10==0:
             print('%d/100: loss %f' % (i+1,loss.numpy()))
     rnn.summary()
+    rnn.save_weights('./save_model/rnn.h5')
+    for var in rnn.trainable_variables:
+        print(var.name)
     result=rnn(X)
-    print(result.T)

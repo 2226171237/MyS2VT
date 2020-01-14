@@ -85,9 +85,9 @@ class Vocabs:
 class DataLoader:
     #cache={}
     def __init__(self,csv_dir,data_dir,n_flames_per_video=80,n_words_per_caption=20):
-        dataset=MSVD_Caption(csv_dir)
-        self.video_paths=dataset['Video_path'].values
-        self.captions=dataset['Description'].values
+        self.dataset=MSVD_Caption(csv_dir)
+        self.video_paths=self.dataset['Video_path'].values
+        self.captions=self.dataset['Description'].values
         self.captions=list(replace_map(self.captions))
         self.vacabs=Vocabs(self.captions)
         self.num_videos=len(set(self.video_paths))
@@ -97,6 +97,7 @@ class DataLoader:
         self.n_words_per_caption=n_words_per_caption
 
     def get_batch(self,batch_size):
+        '''训练的时候使用'''
         return_features=[]
         return_captions=[]
         indices=np.random.randint(0,self.num_captions,size=batch_size)
@@ -133,12 +134,56 @@ class DataLoader:
 
         return np.array(return_features,dtype=np.float32),np.array(return_captions,dtype=np.int32)
 
+    def get_test_batch(self,batch_size):
+        '''评测的时候使用'''
+        return_features = []
+        return_captions = []
+        videos=[]
+        videos_path_unique=list(set(self.video_paths)) #去除重复的视频
+        count=0
+        for idx in range(0,len(videos_path_unique)):
+            this_path = os.path.basename(videos_path_unique[idx]).split('.')[0]
+            videos.append(this_path)
+            feature_path = os.path.join(self.data_dir, this_path + '.npy')
+            if os.path.exists(feature_path):
+                this_features = np.load(feature_path, allow_pickle=True)
+            else:
+                raise ValueError('feature path not existed in class %s' % self.__class__.__name__)
+            this_features = np.vstack(this_features)
+            this_feature_nums, dims_feature = this_features.shape
+            if this_feature_nums < self.n_flames_per_video:  # 小于需要的帧数则填充0
+                this_features = np.vstack([this_features,
+                                           np.zeros(shape=(self.n_flames_per_video - this_feature_nums, dims_feature))])
+            if this_feature_nums > self.n_flames_per_video:  # 大于指定帧数则使用均匀采样
+                selected_idxs = np.linspace(0, this_feature_nums, num=self.n_flames_per_video)
+                this_features = this_features[selected_idxs, :]
+            return_features.append(this_features)
+            captions=self.dataset[self.dataset['Video_path']==videos_path_unique[idx]]['Description'].values
+            captions=list(replace_map(captions))
+            captions=[caption.lower() for caption in captions]
+            return_captions.append(captions)
+            count+=1
+            if count==batch_size:
+                yield np.array(return_features, dtype=np.float32), return_captions,videos
+                return_features,return_captions,videos=[],[],[]
+                count=0
+
+        if count!=0:
+            yield np.array(return_features, dtype=np.float32), return_captions,videos
+
 if __name__ == '__main__':
     SAVEPATH = '../features/Features'
     dataloader=DataLoader(CSV_PATH,data_dir=SAVEPATH)
     x,y=dataloader.get_batch(batch_size=2)
     print(x.shape)
     print(y)
+    for x_test,y_test,videos in dataloader.get_test_batch(batch_size=2):
+        print(x_test.shape)
+        print(videos)
+        for caption in y_test[0]:
+            print(caption)
+        break
+
 
 
 
