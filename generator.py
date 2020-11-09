@@ -13,7 +13,6 @@ def main(arg):
     # build vocab
     CSV_PATH = './MSR_Video_Description_Corpus.csv'
     data=MSVD_Caption(CSV_PATH)
-    print(data.head())
     captions = data['Description'].values
     del data
     vocabs=Vocabs(list(replace_map(captions)))
