@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 CSV_PATH='./MSR_Video_Description_Corpus.csv'
-VIDEO_PATH='../features/YouTubeClips'
+VIDEO_PATH='F:\\DataSets\\VideoCaptions\\MSVD\\YouTubeClips'
 
 
 def replace_map(str_array):

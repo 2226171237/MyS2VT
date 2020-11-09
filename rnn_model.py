@@ -14,7 +14,7 @@ class WordEmbeding(tf.keras.layers.Layer):
         self.wordEmbed.assign(tf.random.uniform(minval=-0.1,maxval=0.1,seed=10,shape=self.wordEmbed.shape,dtype=tf.float32))
 
     def call(self, inputs, **kwargs):
-        out=tf.nn.embedding_lookup(self.wordEmbed, inputs)
+        out=tf.nn.embedding_lookup(self.wordEmbed, inputs)  # tf.gather
         return out
 
 
